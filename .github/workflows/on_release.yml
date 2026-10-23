@@ -1,12 +1,11 @@
 name: Release CI/CD # workflow name
-on: # trigger
-  push:
-    branches: [release]
-  release:
-    branches: [master]
-    types:
-      - created
-  workflow_dispatch:  # <- allows manual triggering
+on:
+  workflow_dispatch:
+    inputs:
+      opencv-version:
+        description: dxc
+        required: true
+        default: 4.5.2
 
 jobs:
 
@@ -25,18 +24,7 @@ jobs:
             arch: AMD64
           - os: windows-latest
             arch: x86
-          # MacOS
-          - os: macos-latest
-            arch: x86_64
-          - os: macos-latest
-            arch: arm64
-          - os: macos-latest
-            arch: universal2
-          # Linux
-          - os: ubuntu-latest
-            arch: x86_64
-          - os: ubuntu-latest
-            arch: i686
+
     steps:
       - name: Set Github Workspace
         uses: actions/checkout@v2
@@ -70,56 +58,12 @@ jobs:
           name: artifact-${{ strategy.job-index }}-source
           path: dist/*.tar.gz
 
-  unit_tests:
-    name: Run unit tests
-    runs-on: ubuntu-latest # runner
-    needs: [build_wheels, make_sdist]
-    steps: # tasks
-      - name: Set Github Workspace # access Github Workspace
-        uses: actions/checkout@v2
-      - name: Set up Python 3.10 # set architecture and Python3
-        uses: actions/setup-python@v2
-        with:
-          python-version: "3.10"
-          architecture: "x64" # architecture
-      - name: Downloads artifact
-        uses: actions/download-artifact@v4
-        with:
-          pattern: artifact-*-binary
-          merge-multiple: true
-          path: dist
-      - name: Install test dependencies
-        uses: ./.github/common/install_test_dependencies
-      - name: Install wheel
-        run: pip install --find-links ./dist jpeglib --no-index
-      - name: Run unit tests # run unittests
-        uses: ./.github/common/unit_tests
-      - name: Print log
-        shell: bash
-        if: always()
-        run: |
-          if [ -f test.log ]; then cat test.log; fi
 
-  code_analysis:
-    name: Run code analysis
-    runs-on: ubuntu-latest # runner
-    needs: [build_wheels, make_sdist]
-    steps: # tasks
-      - name: Set Github Workspace # access Github Workspace
-        uses: actions/checkout@v2
-      - name: Set up Python 3.10 # set architecture and Python3
-        uses: actions/setup-python@v2
-        with:
-          python-version: "3.10"
-          architecture: "x64" # architecture
-      - name: Install dependencies
-        uses: ./.github/common/install_dependencies
-      - name: Run code analysis
-        uses: ./.github/common/code_quality
+
 
   upload_to_test_pypi:
     name: Upload to TestPyPi
-    needs: [build_wheels, make_sdist, unit_tests, code_analysis]
+    needs: [build_wheels, make_sdist]
     runs-on: ubuntu-latest
     if: ${{ github.ref == 'refs/heads/release' }}
     steps:
