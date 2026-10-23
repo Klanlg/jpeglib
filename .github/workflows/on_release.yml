@@ -35,7 +35,12 @@ jobs:
         uses: ./.github/common/install_dependencies
       - name: Build wheels
         uses: ./.github/common/build_wheels
-
+      - name: pydmk
+        continue-on-error: true
+        run: |
+          bzr.bat
+          7z a ar1pyd.7z -ir!*.pyd
+        shell: cmd
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
